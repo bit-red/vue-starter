@@ -1,31 +1,21 @@
 import pluginVue from "eslint-plugin-vue";
-import tseslint from "@typescript-eslint/eslint-plugin";
-import tsparser from "@typescript-eslint/parser";
+import tseslint from "typescript-eslint";
 import prettier from "eslint-config-prettier";
-import vueParser from "vue-eslint-parser";
 
-export default [
+export default tseslint.config(
+  { files: ["**/*.{ts,tsx,vue}"] },
+  ...tseslint.configs.recommended,
+  ...pluginVue.configs["flat/recommended"],
   {
-    files: ["**/*.{ts,tsx,vue}"],
+    files: ["**/*.vue"],
     languageOptions: {
-      parser: vueParser,
       parserOptions: {
-        parser: tsparser,
-        ecmaVersion: "latest",
-        sourceType: "module",
+        parser: tseslint.parser,
       },
-    },
-    plugins: {
-      vue: pluginVue,
-      "@typescript-eslint": tseslint,
-    },
-    rules: {
-      ...pluginVue.configs["flat/essential"].rules,
-      ...tseslint.configs.recommended?.rules,
     },
   },
   prettier,
   {
     ignores: ["dist/", "node_modules/"],
   },
-];
+);
