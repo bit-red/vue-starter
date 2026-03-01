@@ -2,10 +2,8 @@
 import { ref } from "vue";
 import { useRouter } from "vue-router";
 import { useLogin } from "@/services/auth";
-import { useAuthStore } from "@/stores/auth";
 
 const router = useRouter();
-const authStore = useAuthStore();
 const { mutateAsync, isPending } = useLogin();
 
 const email = ref("");
@@ -24,27 +22,169 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <div>
-    <h1>Login</h1>
-    <form @submit.prevent="handleSubmit">
-      <div>
-        <label for="email">Email</label>
-        <input id="email" v-model="email" type="email" required />
+  <div class="auth-page">
+    <div class="auth-card">
+      <div class="auth-header">
+        <h1 class="auth-title">Sign in</h1>
+        <p class="auth-subtitle">Enter your credentials to continue</p>
       </div>
-      <div>
-        <label for="password">Password</label>
-        <input id="password" v-model="password" type="password" required />
-      </div>
-      <p v-if="error">{{ error }}</p>
-      <button type="submit" :disabled="isPending">
-        {{ isPending ? "Logging in..." : "Login" }}
-      </button>
-    </form>
-    <p>
-      <RouterLink :to="{ name: 'auth.register' }">Create an account</RouterLink>
-    </p>
-    <p>
-      <RouterLink :to="{ name: 'auth.forgot-password' }">Forgot password?</RouterLink>
-    </p>
+
+      <form class="auth-form" @submit.prevent="handleSubmit">
+        <div class="form-field">
+          <label class="form-label" for="email">Email</label>
+          <input
+            id="email"
+            v-model="email"
+            type="email"
+            class="form-input"
+            placeholder="you@example.com"
+            required
+          />
+        </div>
+
+        <div class="form-field">
+          <div class="form-label-row">
+            <label class="form-label" for="password">Password</label>
+            <RouterLink :to="{ name: 'auth.forgot-password' }" class="form-link-sm">
+              Forgot password?
+            </RouterLink>
+          </div>
+          <input
+            id="password"
+            v-model="password"
+            type="password"
+            class="form-input"
+            placeholder="********"
+            required
+          />
+        </div>
+
+        <p v-if="error" class="form-error">{{ error }}</p>
+
+        <button type="submit" class="form-button" :disabled="isPending">
+          {{ isPending ? "Signing in..." : "Sign in" }}
+        </button>
+      </form>
+
+      <p class="auth-footer">
+        Don't have an account?
+        <RouterLink :to="{ name: 'auth.register' }" class="form-link">Sign up</RouterLink>
+      </p>
+    </div>
   </div>
 </template>
+
+<style scoped>
+.auth-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 1rem;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.auth-header {
+  text-align: center;
+}
+
+.auth-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+
+.auth-subtitle {
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+  color: var(--color-muted, #737373);
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.form-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.form-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.form-input {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--color-border, #e5e5e5);
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.form-input:focus {
+  border-color: var(--color-primary, #171717);
+}
+
+.form-error {
+  font-size: 0.875rem;
+  color: #dc2626;
+}
+
+.form-button {
+  padding: 0.5rem 1rem;
+  background: var(--color-primary, #171717);
+  color: var(--color-primary-fg, #fff);
+  border: none;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.form-button:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.form-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.form-link {
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.form-link-sm {
+  font-size: 0.75rem;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  color: var(--color-muted, #737373);
+}
+
+.auth-footer {
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--color-muted, #737373);
+}
+</style>
