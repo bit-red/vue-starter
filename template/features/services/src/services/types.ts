@@ -1,0 +1,23 @@
+export interface ApiResponse<T> {
+  data: T;
+}
+
+export interface ApiPaginatedResponse<T> {
+  data: T[];
+  meta: PaginationMeta;
+}
+
+export interface PaginationMeta {
+  current_page: number;
+  last_page: number;
+  per_page: number;
+  total: number;
+  from: number | null;
+  to: number | null;
+}
+
+export interface PaginationParams {
+  page?: number;
+  per_page?: number;
+  sort?: string;
+}
