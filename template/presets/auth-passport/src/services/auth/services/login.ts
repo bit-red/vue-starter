@@ -9,7 +9,6 @@ export async function login(payload: LoginPayload): Promise<TokenResponse> {
     {
       grant_type: "password",
       client_id: import.meta.env.VITE_PASSPORT_CLIENT_ID,
-      client_secret: import.meta.env.VITE_PASSPORT_CLIENT_SECRET,
       username: payload.email,
       password: payload.password,
       scope: "",

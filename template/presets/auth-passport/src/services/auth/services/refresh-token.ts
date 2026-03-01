@@ -10,7 +10,6 @@ export async function refreshToken(): Promise<TokenResponse> {
     {
       grant_type: "refresh_token",
       client_id: import.meta.env.VITE_PASSPORT_CLIENT_ID,
-      client_secret: import.meta.env.VITE_PASSPORT_CLIENT_SECRET,
       refresh_token: storedRefreshToken,
       scope: "",
     },
