@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { execSync } from "node:child_process";
 import * as p from "@clack/prompts";
 import type { ProjectOptions } from "./types.js";
 import { renderTemplate } from "./utils.js";
@@ -77,6 +78,14 @@ export async function generateProject(options: ProjectOptions): Promise<void> {
     const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8"));
     pkg.name = packageName;
     fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + "\n");
+  }
+
+  // 3. Initialize git
+  scaffold.message("Initializing git repository");
+  try {
+    execSync("git init", { cwd: dest, stdio: "pipe" });
+  } catch {
+    // git not available — skip silently
   }
 
   scaffold.stop("Project scaffolded");
