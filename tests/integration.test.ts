@@ -148,11 +148,6 @@ describe("project generation: file structure", () => {
         path.join(dest, "src", "composables", "use-error-handler.ts"),
       ),
     ).toBe(true);
-    expect(
-      fs.existsSync(
-        path.join(dest, "src", "composables", "use-stale-time.ts"),
-      ),
-    ).toBe(true);
   });
 
   it("ui feature adds css, utils, and components.json", () => {

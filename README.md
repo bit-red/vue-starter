@@ -15,7 +15,7 @@ The CLI prompts you to select which features to include:
 | **Router** | Vue Router 4, dynamic layouts (`guest`/`auth`), `useQueryParams` composable |
 | **Pinia** | Pinia 3, `stores/` directory |
 | **UI** | Shadcn Vue, Tailwind CSS v4, `cn()` utility, `components.json` ready |
-| **Services** | Axios + TanStack Vue Query, typed API layer (`http.ts`, `ApiResponse<T>`, `ApiPaginatedResponse<T>`), `useStaleTime`, `useErrorHandler` |
+| **Services** | Axios + TanStack Vue Query, typed API layer (`http.ts`, `ApiResponse<T>`, `ApiPaginatedResponse<T>`), `useErrorHandler` |
 | **Forms** | TanStack Vue Form + Zod |
 | **ESLint** | ESLint 9 flat config + Prettier (semi, double quotes, trailing commas, 100 width) |
 
