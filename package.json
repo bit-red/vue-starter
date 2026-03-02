@@ -1,6 +1,10 @@
 {
   "name": "create-bitred-vue",
   "version": "0.1.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bit-red/vue-starter"
+  },
   "engines": {
     "node": ">=20"
   },
