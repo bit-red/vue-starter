@@ -3,7 +3,7 @@ import { ref } from "vue";
 import { useSendEmailVerification } from "@/services/auth";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import AuthPageLayout from "../components/AuthPageLayout.vue";
+import { AuthPageLayout } from "../components/auth-page-layout";
 
 const { mutateAsync, isPending } = useSendEmailVerification();
 

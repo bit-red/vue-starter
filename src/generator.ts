@@ -117,10 +117,13 @@ function applyAuthCommon(
 
   // d. Copy AuthPageLayout (only for UI variant)
   if (hasUi) {
-    copyFile(
-      path.resolve(commonDir, "src/modules/auth/components/AuthPageLayout.vue"),
-      path.resolve(srcDir, "modules/auth/components/AuthPageLayout.vue"),
-    );
+    const layoutDir = "src/modules/auth/components/auth-page-layout";
+    for (const file of ["AuthPageLayout.vue", "index.ts"]) {
+      copyFile(
+        path.resolve(commonDir, layoutDir, file),
+        path.resolve(srcDir, "modules/auth/components/auth-page-layout", file),
+      );
+    }
   }
 
   // e. Copy DashboardPage — from plain or ui

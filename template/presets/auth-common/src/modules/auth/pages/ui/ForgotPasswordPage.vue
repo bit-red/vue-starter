@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import AuthPageLayout from "../components/AuthPageLayout.vue";
+import { AuthPageLayout } from "../components/auth-page-layout";
 
 const { mutateAsync, isPending } = useForgotPassword();
 

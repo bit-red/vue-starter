@@ -126,10 +126,13 @@ function generateProject(options: ProjectOptions): string {
 
     // AuthPageLayout (only for UI variant)
     if (hasUi) {
-      copyFile(
-        path.join(commonDir, "src/modules/auth/components/AuthPageLayout.vue"),
-        path.join(srcDir, "modules/auth/components/AuthPageLayout.vue"),
-      );
+      const layoutDir = "src/modules/auth/components/auth-page-layout";
+      for (const file of ["AuthPageLayout.vue", "index.ts"]) {
+        copyFile(
+          path.join(commonDir, layoutDir, file),
+          path.join(srcDir, "modules/auth/components/auth-page-layout", file),
+        );
+      }
     }
 
     // Dashboard page

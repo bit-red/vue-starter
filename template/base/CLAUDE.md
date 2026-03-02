@@ -25,12 +25,20 @@ src/
 │   ├── layouts/     # Layout components (GuestLayout, AuthLayout)
 │   ├── shared/      # Shared/reusable components
 │   └── ui/          # Shadcn Vue UI components (if UI feature enabled)
+│       └── <kebab-case>/   # e.g. button/, card/, theme-toggle/
+│           ├── ComponentName.vue
+│           └── index.ts     # Barrel export
 ├── composables/     # Vue composables (reusable reactive logic)
+│   └── use-theme.ts # Dark/light mode toggle (UI feature)
 ├── lib/             # Utility functions (e.g. cn() for class merging)
 ├── modules/         # Feature modules (e.g. auth/)
 │   └── <module>/
 │       ├── pages/
 │       ├── components/
+│       │   └── <kebab-case>/   # Same pattern as ui/ components
+│       │       ├── ComponentName.vue
+│       │       └── index.ts
+│       ├── composables/
 │       └── router.ts
 ├── pages/           # Top-level page components
 ├── router/          # Vue Router config, routes, guards
@@ -40,25 +48,56 @@ src/
 │   └── <domain>/    # Domain-specific services
 │       ├── keys.ts      # TanStack Query keys
 │       ├── types.ts     # Domain types
-│       ├── services/    # API call functions
+│       ├── services.ts  # API call functions
 │       ├── queries/     # useQuery composables
 │       └── mutations/   # useMutation composables
 └── stores/          # Pinia stores
+```
+
+### Component Patterns
+
+**UI components** follow the Shadcn Vue convention: each component lives in `components/ui/<kebab-case>/` with a `ComponentName.vue` and an `index.ts` barrel export. Import via `@/components/ui/<name>`:
+
+```ts
+import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
+```
+
+**Module components** follow the same pattern inside their module:
+
+```ts
+import { AuthPageLayout } from "../components/auth-page-layout";
 ```
 
 ### Key Patterns
 
 **Layouts**: The app uses dynamic layouts via `route.meta.layout`. Each route can specify `layout: "guest"` or `layout: "auth"` in its meta. The `App.vue` component resolves and renders the correct layout automatically.
 
+**Dark mode**: The `useTheme()` composable (from `@/composables/use-theme`) manages color mode via `@vueuse/core`. It stores the preference in localStorage under `app-theme` and applies classes to `<html>`. The `ThemeToggle` component provides a floating sun/moon button.
+
 **Services layer**: API services follow a strict structure:
 - `services/<domain>/keys.ts` — TanStack Query key factories
-- `services/<domain>/services/` — Raw API functions (return promises)
+- `services/<domain>/services.ts` — API call functions (return promises)
 - `services/<domain>/queries/` — `useQuery` composables wrapping services
 - `services/<domain>/mutations/` — `useMutation` composables wrapping services
 
 **Routes**: Route names follow dot notation for namespacing (e.g. `auth.login`, `auth.register`). Protected routes use `meta: { requiresAuth: true }`, guest-only routes use `meta: { requiresGuest: true }`.
 
 **Stores**: Pinia stores use the composition API style (`defineStore` with setup function).
+
+### Auth Module
+
+When an auth preset is selected, the following module is generated:
+
+- **Login page** is always included
+- **Additional pages** are selectable: Register, Forgot Password, Reset Password, Email Verification
+- **UI variant** (with Shadcn components) uses `AuthPageLayout` wrapper for consistent card + image layout
+- **Plain variant** (without UI feature) uses minimal CSS-only pages
+- Auth store (Pinia) with `isAuthenticated` and `isAdmin`
+- TanStack Query services, queries, and mutations
+- Navigation guards (`requiresAuth`, `requiresGuest`)
+- Route-based layouts (`guest` for auth pages, `auth` for protected pages)
+- Dashboard placeholder page
 
 ## Tech Stack
 
@@ -70,6 +109,7 @@ src/
 - **Axios** + **TanStack Vue Query** for API calls (if enabled)
 - **TanStack Vue Form** + **Zod** for form handling and validation (if enabled)
 - **Shadcn Vue** + **Tailwind CSS v4** for UI components (if enabled)
+- **VueUse** for utility composables (if UI enabled)
 - **ESLint 9** + **Prettier** for linting and formatting (if enabled)
 
 ## Code Style
@@ -94,7 +134,7 @@ VITE_API_URL=http://localhost:8000/api
 
 ## Adding a New Feature Module
 
-1. Create `src/modules/<name>/` with `pages/`, `components/`, and `router.ts`
+1. Create `src/modules/<name>/` with `pages/`, `components/`, `composables/`, and `router.ts`
 2. Add service layer in `src/services/<name>/` following the keys/services/queries/mutations pattern
 3. Import routes in `src/router/routes.ts`
 4. Add any required store in `src/stores/<name>.ts`

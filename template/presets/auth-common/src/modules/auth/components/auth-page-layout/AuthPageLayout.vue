@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Card, CardContent } from "@/components/ui/card";
-import ThemeToggle from "@/components/ThemeToggle.vue";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 defineProps<{ title: string; subtitle: string }>();
 </script>
