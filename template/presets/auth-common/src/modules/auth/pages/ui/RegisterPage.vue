@@ -36,23 +36,23 @@ async function handleSubmit() {
 <template>
   <AuthPageLayout title="Create an account" subtitle="Fill in the details to get started">
     <form class="flex flex-col gap-6" @submit.prevent="handleSubmit">
-      <FieldGroup>
-        <Field>
+      <FieldGroup class="gap-3">
+        <Field class="gap-1">
           <FieldLabel for="name">Name</FieldLabel>
           <Input id="name" v-model="name" type="text" placeholder="John Doe" required />
         </Field>
 
-        <Field>
+        <Field class="gap-1">
           <FieldLabel for="email">Email</FieldLabel>
           <Input id="email" v-model="email" type="email" placeholder="you@example.com" required />
         </Field>
 
-        <Field>
+        <Field class="gap-1">
           <FieldLabel for="password">Password</FieldLabel>
           <Input id="password" v-model="password" type="password" placeholder="********" required />
         </Field>
 
-        <Field>
+        <Field class="gap-1">
           <FieldLabel for="password_confirmation">Confirm password</FieldLabel>
           <Input id="password_confirmation" v-model="passwordConfirmation" type="password" placeholder="********" required />
         </Field>

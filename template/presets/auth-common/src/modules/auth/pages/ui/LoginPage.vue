@@ -32,7 +32,7 @@ async function handleSubmit() {
   <AuthPageLayout title="Welcome back" subtitle="Sign in to your account">
     <form class="flex flex-col gap-6" @submit.prevent="handleSubmit">
       <FieldGroup>
-        <Field>
+        <Field class="gap-1">
           <FieldLabel for="email">Email</FieldLabel>
           <Input
             id="email"
@@ -43,7 +43,7 @@ async function handleSubmit() {
           />
         </Field>
 
-        <Field>
+        <Field class="gap-1">
           <div class="flex items-center">
             <FieldLabel for="password">Password</FieldLabel>
             <RouterLink

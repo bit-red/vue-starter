@@ -37,7 +37,7 @@ async function handleSubmit() {
 
     <form v-else class="flex flex-col gap-6" @submit.prevent="handleSubmit">
       <FieldGroup>
-        <Field>
+        <Field class="gap-1">
           <FieldLabel for="email">Email</FieldLabel>
           <Input
             id="email"

@@ -37,17 +37,17 @@ async function handleSubmit() {
   <AuthPageLayout title="Set new password" subtitle="Enter your new password below">
     <form class="flex flex-col gap-6" @submit.prevent="handleSubmit">
       <FieldGroup>
-        <Field>
+        <Field class="gap-1">
           <FieldLabel for="email">Email</FieldLabel>
           <Input id="email" v-model="email" type="email" placeholder="you@example.com" required />
         </Field>
 
-        <Field>
+        <Field class="gap-1">
           <FieldLabel for="password">New password</FieldLabel>
           <Input id="password" v-model="password" type="password" placeholder="********" required />
         </Field>
 
-        <Field>
+        <Field class="gap-1">
           <FieldLabel for="password_confirmation">Confirm password</FieldLabel>
           <Input id="password_confirmation" v-model="passwordConfirmation" type="password" placeholder="********" required />
         </Field>
