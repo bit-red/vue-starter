@@ -1,8 +1,10 @@
 <script setup lang="ts">
+import ThemeToggle from "@/components/ThemeToggle.vue";
 </script>
 
 <template>
   <div class="flex min-h-svh items-center justify-center">
+    <ThemeToggle />
     <div class="flex flex-col items-center gap-3 text-center">
       <p class="text-8xl font-extrabold leading-none tracking-tighter text-border">
         404

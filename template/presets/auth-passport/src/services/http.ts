@@ -1,5 +1,5 @@
 import axios from "axios";
-import { refreshToken } from "./auth/services/refresh-token";
+import { refreshToken } from "./auth/services";
 
 export const http = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "http://localhost:8000/api",

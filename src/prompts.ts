@@ -1,7 +1,7 @@
 import * as p from "@clack/prompts";
 import pc from "picocolors";
-import type { Feature, AuthPreset, ProjectOptions } from "./types.js";
-import { AUTH_REQUIRED_FEATURES } from "./types.js";
+import type { Feature, AuthPreset, AuthPage, ProjectOptions } from "./types.js";
+import { AUTH_REQUIRED_FEATURES, SELECTABLE_AUTH_PAGES } from "./types.js";
 import { toValidPackageName } from "./utils.js";
 
 export async function runPrompts(
@@ -87,17 +87,45 @@ export async function runPrompts(
   );
 
   const projectName = (result.projectName as string).trim();
+  const authPreset = result.authPreset as AuthPreset;
   const features = resolveFeatures(
     result.features as Feature[],
-    result.authPreset as AuthPreset,
+    authPreset,
   );
-  const authPreset = result.authPreset as AuthPreset;
+
+  // Auth pages prompt: only shown when auth + UI
+  let authPages: AuthPage[] = [];
+
+  if (authPreset !== "none" && features.includes("ui")) {
+    const selectedPages = await p.multiselect<
+      { value: AuthPage; label: string }[],
+      AuthPage
+    >({
+      message: "Auth pages (Login is always included):",
+      initialValues: [...SELECTABLE_AUTH_PAGES],
+      options: [
+        { value: "register", label: "Register" },
+        { value: "forgot-password", label: "Forgot Password" },
+        { value: "reset-password", label: "Reset Password" },
+        { value: "email-verification", label: "Email Verification" },
+      ],
+      required: false,
+    });
+
+    if (p.isCancel(selectedPages)) {
+      p.cancel("Operation cancelled.");
+      process.exit(0);
+    }
+
+    authPages = selectedPages;
+  }
 
   return {
     projectName,
     packageName: toValidPackageName(projectName),
     features,
     authPreset,
+    authPages,
   };
 }
 
