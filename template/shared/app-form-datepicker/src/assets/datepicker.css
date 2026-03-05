@@ -1,0 +1,97 @@
+/* ─── VueDatePicker theme ─── */
+
+:root {
+  --dp-font-family: var(--font-body);
+  --dp-border-radius: var(--radius-md);
+  --dp-input-padding: 6px 12px;
+  --dp-font-size: 0.875rem;
+  --dp-cell-border-radius: var(--radius-md);
+  --dp-menu-border-radius: var(--radius-lg);
+  --dp-menu-min-width: 260px;
+}
+
+.dp__theme_light {
+  --dp-background-color: var(--background);
+  --dp-text-color: var(--foreground);
+  --dp-hover-color: var(--accent);
+  --dp-hover-text-color: var(--accent-foreground);
+  --dp-primary-color: var(--primary);
+  --dp-primary-text-color: var(--primary-foreground);
+  --dp-secondary-color: var(--muted-foreground);
+  --dp-border-color: var(--input);
+  --dp-menu-border-color: var(--border);
+  --dp-border-color-hover: var(--ring);
+  --dp-border-color-focus: var(--ring);
+  --dp-disabled-color: var(--muted);
+  --dp-disabled-color-text: var(--muted-foreground);
+  --dp-scroll-bar-background: var(--muted);
+  --dp-scroll-bar-color: var(--muted-foreground);
+  --dp-success-color: var(--primary);
+  --dp-success-color-disabled: var(--muted);
+  --dp-icon-color: var(--muted-foreground);
+  --dp-danger-color: var(--destructive);
+  --dp-highlight-color: color-mix(in srgb, var(--primary) 10%, transparent);
+  --dp-range-between-dates-background-color: color-mix(in srgb, var(--primary) 10%, transparent);
+  --dp-range-between-dates-text-color: var(--foreground);
+  --dp-range-between-border-color: color-mix(in srgb, var(--primary) 10%, transparent);
+}
+
+.dp__theme_dark {
+  --dp-background-color: color-mix(in srgb, var(--input) 30%, transparent);
+  --dp-text-color: var(--foreground);
+  --dp-hover-color: var(--accent);
+  --dp-hover-text-color: var(--accent-foreground);
+  --dp-primary-color: var(--primary);
+  --dp-primary-text-color: var(--primary-foreground);
+  --dp-secondary-color: var(--muted-foreground);
+  --dp-border-color: var(--input);
+  --dp-menu-border-color: var(--input);
+  --dp-border-color-hover: var(--ring);
+  --dp-border-color-focus: var(--ring);
+  --dp-disabled-color: var(--muted);
+  --dp-disabled-color-text: var(--muted-foreground);
+  --dp-scroll-bar-background: var(--muted);
+  --dp-scroll-bar-color: var(--muted-foreground);
+  --dp-success-color: var(--primary);
+  --dp-success-color-disabled: var(--muted);
+  --dp-icon-color: var(--muted-foreground);
+  --dp-danger-color: var(--destructive);
+  --dp-highlight-color: color-mix(in srgb, var(--primary) 15%, transparent);
+  --dp-range-between-dates-background-color: color-mix(in srgb, var(--primary) 15%, transparent);
+  --dp-range-between-dates-text-color: var(--foreground);
+  --dp-range-between-border-color: color-mix(in srgb, var(--primary) 15%, transparent);
+}
+
+.dp__theme_dark.dp__menu {
+  background-color: var(--card);
+}
+
+.dp__theme_dark .dp__time_display,
+.dp__theme_dark .dp__overlay {
+  background-color: var(--card);
+}
+
+.dp__input {
+  transition: color 0.15s, box-shadow 0.15s, border-color 0.15s;
+}
+
+.dp__input::placeholder {
+  color: var(--muted-foreground);
+}
+
+.dp__input:focus {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 50%, transparent);
+}
+
+.dp__disabled {
+  opacity: 0.5;
+}
+
+.dp-input-error {
+  border-color: var(--destructive) !important;
+  color: var(--destructive);
+}
+
+.dp-input-error:hover {
+  border-color: var(--destructive) !important;
+}
