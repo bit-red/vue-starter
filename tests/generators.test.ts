@@ -9,6 +9,7 @@ import {
   generateAuthMutationsIndex,
   generateAuthMainIndex,
 } from "../src/generators/auth-indexes.js";
+import { generateClaudeMd } from "../src/generators/claude-md.js";
 
 function makeOptions(
   overrides: Partial<ProjectOptions> = {},
@@ -19,6 +20,7 @@ function makeOptions(
     features: [],
     authPreset: "none",
     authPages: [],
+    sharedComponents: [],
     ...overrides,
   };
 }
@@ -337,5 +339,77 @@ describe("generateAuthMainIndex", () => {
   it("does not include TokenResponse for sanctum", () => {
     const result = generateAuthMainIndex([], "sanctum");
     expect(result).not.toContain("TokenResponse");
+  });
+});
+
+describe("generateClaudeMd", () => {
+  it("generates base CLAUDE.md without forms or shared components", () => {
+    const result = generateClaudeMd(makeOptions());
+    expect(result).toContain("# CLAUDE.md");
+    expect(result).toContain("create-bitred-vue");
+    expect(result).not.toContain("TanStack Form");
+    expect(result).not.toContain("Shared Components");
+  });
+
+  it("includes TanStack Form section when forms feature enabled", () => {
+    const result = generateClaudeMd(makeOptions({ features: ["forms"] }));
+    expect(result).toContain("## TanStack Form");
+    expect(result).toContain("No adapter");
+    expect(result).toContain("useForm");
+  });
+
+  it("includes shared components section when components selected", () => {
+    const result = generateClaudeMd(
+      makeOptions({
+        features: ["ui"],
+        sharedComponents: ["app-form-input"],
+      }),
+    );
+    expect(result).toContain("## Shared Components");
+    expect(result).toContain("### AppFormInput");
+    expect(result).toContain("mask presets");
+  });
+
+  it("includes AppField patterns when app-field selected", () => {
+    const result = generateClaudeMd(
+      makeOptions({
+        features: ["ui", "forms"],
+        sharedComponents: ["app-form-input", "app-field"],
+      }),
+    );
+    expect(result).toContain("### AppField");
+    expect(result).toContain("useApiFieldErrors");
+    expect(result).toContain("Always use AppField");
+  });
+
+  it("includes AppFieldPhone when both app-field and app-phone-input selected", () => {
+    const result = generateClaudeMd(
+      makeOptions({
+        features: ["ui", "forms"],
+        sharedComponents: ["app-form-input", "app-phone-input", "app-field"],
+      }),
+    );
+    expect(result).toContain("### AppFieldPhone");
+  });
+
+  it("does not include AppFieldPhone when app-phone-input not selected", () => {
+    const result = generateClaudeMd(
+      makeOptions({
+        features: ["ui", "forms"],
+        sharedComponents: ["app-form-input", "app-field"],
+      }),
+    );
+    expect(result).not.toContain("### AppFieldPhone");
+  });
+
+  it("includes useApiFieldErrors in form setup when app-field selected", () => {
+    const result = generateClaudeMd(
+      makeOptions({
+        features: ["ui", "forms"],
+        sharedComponents: ["app-form-input", "app-field"],
+      }),
+    );
+    expect(result).toContain('import { useApiFieldErrors }');
+    expect(result).toContain('import { useErrorHandler }');
   });
 });

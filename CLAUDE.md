@@ -24,16 +24,17 @@ npm run test:watch  # Run tests in watch mode
 ```
 src/
 ├── index.ts          # Entry point — intro → prompts → generate → outro
-├── types.ts          # Feature, AuthPreset, AuthPage, ProjectOptions
+├── types.ts          # Feature, AuthPreset, AuthPage, SharedComponent, ProjectOptions
 ├── prompts.ts        # Interactive prompts via @clack/prompts
-├── generator.ts      # Orchestrates: base → features → preset → auth-common → dynamic files
+├── generator.ts      # Orchestrates: base → features → shared → preset → auth-common → dynamic files
 ├── utils.ts          # renderTemplate, deepMerge, sortDependencies, toValidPackageName
 └── generators/
     ├── main-ts.ts    # Generates src/main.ts with conditional imports/plugins
     ├── app-vue.ts    # Generates App.vue (layout system or simple placeholder)
     ├── vite-config.ts # Generates vite.config.ts with conditional plugins
     ├── auth-router.ts # Generates auth module router.ts based on selected pages
-    └── auth-indexes.ts # Generates auth services/mutations barrel indexes
+    ├── auth-indexes.ts # Generates auth services/mutations barrel indexes
+    └── claude-md.ts  # Generates CLAUDE.md with conditional sections
 ```
 
 **Key flow:** `index.ts` → `prompts.ts` (collects options) → `generator.ts` (copies templates + generates dynamic files)
@@ -50,6 +51,11 @@ template/
 │   ├── forms/        # TanStack Form + Zod (deps only)
 │   ├── ui/           # Shadcn Vue + Tailwind v4, components.json, cn(), ThemeToggle
 │   └── eslint/       # ESLint 9 flat config + Prettier
+├── shared/           # Shared component overlays (selected when ui feature enabled)
+│   ├── app-form-input/    # Input with label, error, mask (maska), tooltip
+│   ├── app-form-datepicker/ # Date picker (vue-datepicker) with dark mode
+│   ├── app-phone-input/   # International phone input (libphonenumber-js)
+│   └── app-field/         # TanStack Form field wrapper (requires forms + ui)
 └── presets/
     ├── auth-common/    # Shared auth files: pages (ui/plain), mutations, guards, routes
     ├── auth-sanctum/   # Cookie-based auth (withCredentials, CSRF) — http.ts, store, types
@@ -62,7 +68,10 @@ template/
 - Each overlay has a `package.json` with only its extra deps — merged via `deepMerge` + `sortDependencies`
 - Preset-specific overlays (`auth-sanctum/`, `auth-passport/`) only contain `http.ts`, `stores/auth.ts`, and `services/auth/types.ts`
 - Common auth files (pages, guards, routes, mutations, queries) live in `auth-common/` and are copied selectively by `generator.ts`
-- Three files are always generated dynamically: `src/main.ts`, `src/App.vue`, `vite.config.ts`
+- Shared component overlays follow the same pattern as features — each has a `package.json` for deps
+- `app-field` has conditional logic: `AppFieldPhone.vue` only included if `app-phone-input` is also selected; its `index.ts` is generated dynamically
+- `app-form-datepicker` appends `@import "./datepicker.css"` to `index.css` after overlay application
+- Four files are always generated dynamically: `src/main.ts`, `src/App.vue`, `vite.config.ts`, `CLAUDE.md`
 - Auth-specific files are also generated dynamically: `modules/auth/router.ts`, `services/auth/services.ts`, `services/auth/mutations/index.ts`, `services/auth/index.ts`
 
 ### Tests (`tests/`)
@@ -70,11 +79,11 @@ template/
 ```
 tests/
 ├── utils.test.ts        # Unit tests for toValidPackageName, sortDependencies, deepMerge, renderTemplate
-├── generators.test.ts   # Unit tests for main-ts, app-vue, vite-config, auth-router, auth-indexes generators
-└── integration.test.ts  # Full project generation + npm install + vite build for 5 scenarios
+├── generators.test.ts   # Unit tests for main-ts, app-vue, vite-config, auth-router, auth-indexes, claude-md generators
+└── integration.test.ts  # Full project generation + npm install + vite build for 7 scenarios
 ```
 
-Integration build tests are slow (~100s total) because they run `npm install` + `vue-tsc -b && vite build` for 5 scenarios.
+Integration build tests are slow (~140s total) because they run `npm install` + `vue-tsc -b && vite build` for 7 scenarios.
 
 ## Key Design Decisions
 
@@ -83,7 +92,8 @@ Integration build tests are slow (~100s total) because they run `npm install` + 
 - **Auth requires features**: Selecting any auth preset auto-adds router, pinia, services
 - **Auth page selection**: Users choose which auth pages to include (register, forgot-password, reset-password, email-verification); login is always included
 - **Auth-common extraction**: Shared auth files (guards, routes, pages, mutations) live in `auth-common/`, while preset-specific files (http.ts, store, types) stay in `auth-sanctum/` and `auth-passport/`
-- **Dynamic generation**: `main.ts`, `App.vue`, `vite.config.ts`, and auth barrel indexes are code-generated because their content depends on the combination of selected features/pages
+- **Shared components**: When `ui` is selected, users can optionally add shared components; `app-field` requires `forms` and auto-includes `app-form-input`
+- **Dynamic generation**: `main.ts`, `App.vue`, `vite.config.ts`, `CLAUDE.md`, and auth barrel indexes are code-generated because their content depends on the combination of selected features/pages/components
 - **Package manager**: npm only (hardcoded `npm install` in generator)
 
 ## Features and Auth Presets
@@ -110,6 +120,13 @@ Integration build tests are slow (~100s total) because they run `npm install` + 
 | Reset Password | `"reset-password"` |
 | Email Verification | `"email-verification"` |
 
+| Shared Component | Type in `types.ts` | Requires |
+|-----------------|-------------------|----------|
+| AppFormInput | `"app-form-input"` | `ui` |
+| AppFormDatePicker | `"app-form-datepicker"` | `ui` |
+| AppPhoneInput | `"app-phone-input"` | `ui` |
+| AppField | `"app-field"` | `ui` + `forms`, auto-includes `app-form-input` |
+
 ## Adding a New Feature
 
 1. Create `template/features/<name>/` with a `package.json` (extra deps only)
@@ -135,6 +152,18 @@ Integration build tests are slow (~100s total) because they run `npm install` + 
 4. Add entry in `AUTH_PAGE_FILES` map in `src/generator.ts`
 5. Update `src/generators/auth-router.ts` and `src/generators/auth-indexes.ts`
 6. Add a multiselect option in `src/prompts.ts`
+
+## Adding a New Shared Component
+
+1. Create `template/shared/<name>/` with a `package.json` (extra deps only)
+2. Add source files under `template/shared/<name>/src/`
+3. Add the name to the `SharedComponent` union type in `src/types.ts` and `SELECTABLE_SHARED_COMPONENTS`
+4. If it requires `forms`, add to `SHARED_COMPONENT_REQUIRES_FORMS`
+5. If it depends on other shared components, add to `SHARED_COMPONENT_DEPS`
+6. Add label/hint in `SHARED_COMPONENT_LABELS` in `src/prompts.ts`
+7. If special logic needed (conditional files), update `applySharedComponents` or `applyAppField` in `src/generator.ts`
+8. Update `src/generators/claude-md.ts` to document the component in generated projects
+9. Add build test in `tests/integration.test.ts`
 
 ## Code Style
 

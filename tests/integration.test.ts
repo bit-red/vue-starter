@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { execSync } from "node:child_process";
-import type { ProjectOptions, Feature, AuthPreset } from "../src/types.js";
+import type { ProjectOptions, Feature, AuthPreset, SharedComponent } from "../src/types.js";
 import { renderTemplate } from "../src/utils.js";
 import { generateMainTs } from "../src/generators/main-ts.js";
 import { generateAppVue } from "../src/generators/app-vue.js";
@@ -14,6 +14,7 @@ import {
   generateAuthMutationsIndex,
   generateAuthMainIndex,
 } from "../src/generators/auth-indexes.js";
+import { generateClaudeMd } from "../src/generators/claude-md.js";
 
 const templateDir = path.resolve("template");
 let testRoot: string;
@@ -59,6 +60,36 @@ function generateProject(options: ProjectOptions): string {
     if (fs.existsSync(dir)) renderTemplate(dir, dest);
   }
 
+  // 2b. Shared components
+  for (const component of options.sharedComponents) {
+    const dir = path.join(templateDir, "shared", component);
+    if (fs.existsSync(dir)) renderTemplate(dir, dest);
+  }
+  // Handle app-field conditional logic
+  if (options.sharedComponents.includes("app-field")) {
+    const hasPhone = options.sharedComponents.includes("app-phone-input");
+    const fieldDir = path.join(dest, "src", "components", "shared", "app-field");
+    if (!hasPhone) {
+      const phoneFieldPath = path.join(fieldDir, "AppFieldPhone.vue");
+      if (fs.existsSync(phoneFieldPath)) fs.unlinkSync(phoneFieldPath);
+    }
+    const indexLines = ['export { default as AppField } from "./AppField.vue";'];
+    if (hasPhone) {
+      indexLines.push('export { default as AppFieldPhone } from "./AppFieldPhone.vue";');
+    }
+    fs.writeFileSync(path.join(fieldDir, "index.ts"), indexLines.join("\n") + "\n");
+  }
+  // Append datepicker.css import
+  if (options.sharedComponents.includes("app-form-datepicker")) {
+    const indexCssPath = path.join(dest, "src", "assets", "index.css");
+    if (fs.existsSync(indexCssPath)) {
+      const content = fs.readFileSync(indexCssPath, "utf-8");
+      if (!content.includes("datepicker.css")) {
+        fs.writeFileSync(indexCssPath, content.trimEnd() + '\n\n@import "./datepicker.css";\n');
+      }
+    }
+  }
+
   // 3. Auth preset
   if (options.authPreset !== "none") {
     // Preset-specific overlay
@@ -102,6 +133,10 @@ function generateProject(options: ProjectOptions): string {
       path.join(srcDir, "services/auth/mutations/use-logout.ts"),
     );
 
+    // Determine page variant: field (AppField), ui (Shadcn), or plain
+    const hasAppField = options.sharedComponents.includes("app-field");
+    const pageVariant = hasAppField ? "field" : hasUi ? "ui" : "plain";
+
     // Selective mutations and pages based on authPages
     for (const page of options.authPages) {
       const files = AUTH_PAGE_FILES[page];
@@ -111,14 +146,13 @@ function generateProject(options: ProjectOptions): string {
       );
       if (hasUi) {
         copyFile(
-          path.join(commonDir, "src/modules/auth/pages/ui", files.page),
+          path.join(commonDir, "src/modules/auth/pages", pageVariant, files.page),
           path.join(srcDir, "modules/auth/pages", files.page),
         );
       }
     }
 
     // Login page (always)
-    const pageVariant = hasUi ? "ui" : "plain";
     copyFile(
       path.join(commonDir, "src/modules/auth/pages", pageVariant, "LoginPage.vue"),
       path.join(srcDir, "modules/auth/pages/LoginPage.vue"),
@@ -135,9 +169,10 @@ function generateProject(options: ProjectOptions): string {
       }
     }
 
-    // Dashboard page
+    // Dashboard page (always ui or plain — no form fields)
+    const dashboardVariant = hasUi ? "ui" : "plain";
     copyFile(
-      path.join(commonDir, "src/pages", pageVariant, "DashboardPage.vue"),
+      path.join(commonDir, "src/pages", dashboardVariant, "DashboardPage.vue"),
       path.join(srcDir, "pages/DashboardPage.vue"),
     );
 
@@ -170,7 +205,10 @@ function generateProject(options: ProjectOptions): string {
     generateViteConfig(options),
   );
 
-  // 5. Set name
+  // 5. Generate CLAUDE.md
+  fs.writeFileSync(path.join(dest, "CLAUDE.md"), generateClaudeMd(options));
+
+  // 6. Set name
   const pkgPath = path.join(dest, "package.json");
   const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8"));
   pkg.name = options.packageName;
@@ -184,11 +222,16 @@ function install(dest: string) {
 }
 
 function build(dest: string) {
-  execSync("npx vue-tsc -b && npx vite build", {
-    cwd: dest,
-    stdio: "pipe",
-    timeout: 120_000,
-  });
+  try {
+    execSync("npx vue-tsc -b && npx vite build", {
+      cwd: dest,
+      stdio: "pipe",
+      timeout: 120_000,
+    });
+  } catch (e: any) {
+    const output = e.stdout?.toString() || e.stderr?.toString() || e.message;
+    throw new Error(`Build failed:\n${output}`);
+  }
 }
 
 beforeAll(() => {
@@ -207,6 +250,7 @@ describe("project generation: file structure", () => {
       features: [],
       authPreset: "none",
       authPages: [],
+      sharedComponents: [],
     });
 
     expect(fs.existsSync(path.join(dest, "package.json"))).toBe(true);
@@ -228,6 +272,7 @@ describe("project generation: file structure", () => {
       features: ["router"],
       authPreset: "none",
       authPages: [],
+      sharedComponents: [],
     });
 
     expect(fs.existsSync(path.join(dest, "src", "router", "index.ts"))).toBe(
@@ -264,6 +309,7 @@ describe("project generation: file structure", () => {
       features: ["services"],
       authPreset: "none",
       authPages: [],
+      sharedComponents: [],
     });
 
     expect(
@@ -289,6 +335,7 @@ describe("project generation: file structure", () => {
       features: ["ui"],
       authPreset: "none",
       authPages: [],
+      sharedComponents: [],
     });
 
     expect(
@@ -307,6 +354,7 @@ describe("project generation: file structure", () => {
       features: ["eslint"],
       authPreset: "none",
       authPages: [],
+      sharedComponents: [],
     });
 
     expect(fs.existsSync(path.join(dest, "eslint.config.ts"))).toBe(true);
@@ -320,6 +368,7 @@ describe("project generation: file structure", () => {
       features: ["router", "pinia", "services"],
       authPreset: "sanctum",
       authPages: ["register", "forgot-password"],
+      sharedComponents: [],
     });
 
     expect(
@@ -349,6 +398,7 @@ describe("project generation: file structure", () => {
       features: ["router", "pinia", "services"],
       authPreset: "passport",
       authPages: [],
+      sharedComponents: [],
     });
 
     const services = fs.readFileSync(
@@ -368,6 +418,7 @@ describe("auth pages: file structure", () => {
       features: ["router", "pinia", "services", "ui"],
       authPreset: "sanctum",
       authPages: ["register", "forgot-password", "reset-password", "email-verification"],
+      sharedComponents: [],
     });
 
     // Auth pages exist
@@ -416,6 +467,7 @@ describe("auth pages: file structure", () => {
       features: ["router", "pinia", "services"],
       authPreset: "sanctum",
       authPages: [],
+      sharedComponents: [],
     });
 
     const authPagesDir = path.join(dest, "src", "modules", "auth", "pages");
@@ -436,6 +488,7 @@ describe("auth pages: file structure", () => {
       features: ["router", "pinia", "services", "ui"],
       authPreset: "sanctum",
       authPages: ["register"],
+      sharedComponents: [],
     });
 
     const authPagesDir = path.join(dest, "src", "modules", "auth", "pages");
@@ -455,6 +508,33 @@ describe("auth pages: file structure", () => {
     expect(services).not.toContain("resetPassword(");
   });
 
+  it("auth + field variant uses AppField in pages", () => {
+    const dest = generateProject({
+      projectName: "struct-auth-field",
+      packageName: "struct-auth-field",
+      features: ["router", "pinia", "services", "ui", "forms"],
+      authPreset: "sanctum",
+      authPages: ["register", "forgot-password", "reset-password", "email-verification"],
+      sharedComponents: ["app-form-input", "app-field"],
+    });
+
+    const authPagesDir = path.join(dest, "src", "modules", "auth", "pages");
+    expect(fs.existsSync(path.join(authPagesDir, "LoginPage.vue"))).toBe(true);
+    expect(fs.existsSync(path.join(authPagesDir, "RegisterPage.vue"))).toBe(true);
+
+    // Field pages import AppField and useForm
+    const loginContent = fs.readFileSync(path.join(authPagesDir, "LoginPage.vue"), "utf-8");
+    expect(loginContent).toContain("@/components/shared/app-field");
+    expect(loginContent).toContain("useForm");
+    expect(loginContent).toContain("useApiFieldErrors");
+    expect(loginContent).toContain("useErrorHandler");
+    expect(loginContent).not.toContain("@/components/ui/input");
+
+    const registerContent = fs.readFileSync(path.join(authPagesDir, "RegisterPage.vue"), "utf-8");
+    expect(registerContent).toContain("AppField");
+    expect(registerContent).toContain("useForm");
+  });
+
   it("barrel indexes contain correct exports", () => {
     const dest = generateProject({
       projectName: "struct-auth-indexes",
@@ -462,6 +542,7 @@ describe("auth pages: file structure", () => {
       features: ["router", "pinia", "services", "ui"],
       authPreset: "passport",
       authPages: ["register", "forgot-password"],
+      sharedComponents: [],
     });
 
     // services.ts has the right functions
@@ -506,6 +587,7 @@ describe("package.json merging", () => {
       features: ["router", "pinia", "services"],
       authPreset: "none",
       authPages: [],
+      sharedComponents: [],
     });
 
     const pkg = JSON.parse(
@@ -525,6 +607,7 @@ describe("package.json merging", () => {
       features: [],
       authPreset: "none",
       authPages: [],
+      sharedComponents: [],
     });
 
     const pkg = JSON.parse(
@@ -540,6 +623,7 @@ describe("package.json merging", () => {
       features: ["router", "pinia", "services", "ui"],
       authPreset: "none",
       authPages: [],
+      sharedComponents: [],
     });
 
     const pkg = JSON.parse(
@@ -559,6 +643,7 @@ describe("project generation: builds", () => {
       features: [],
       authPreset: "none",
       authPages: [],
+      sharedComponents: [],
     });
     install(dest);
     expect(() => build(dest)).not.toThrow();
@@ -571,6 +656,7 @@ describe("project generation: builds", () => {
       features: ["router", "pinia", "ui", "services", "forms", "eslint"],
       authPreset: "none",
       authPages: [],
+      sharedComponents: [],
     });
     install(dest);
     expect(() => build(dest)).not.toThrow();
@@ -583,6 +669,7 @@ describe("project generation: builds", () => {
       features: ["router", "pinia", "services", "ui"],
       authPreset: "sanctum",
       authPages: ["register", "forgot-password", "reset-password", "email-verification"],
+      sharedComponents: [],
     });
     install(dest);
     expect(() => build(dest)).not.toThrow();
@@ -595,6 +682,7 @@ describe("project generation: builds", () => {
       features: ["router", "pinia", "services", "ui"],
       authPreset: "passport",
       authPages: [],
+      sharedComponents: [],
     });
     install(dest);
     expect(() => build(dest)).not.toThrow();
@@ -607,6 +695,46 @@ describe("project generation: builds", () => {
       features: ["router", "pinia", "services"],
       authPreset: "sanctum",
       authPages: [],
+      sharedComponents: [],
+    });
+    install(dest);
+    expect(() => build(dest)).not.toThrow();
+  });
+
+  it("ui + forms + all shared components builds", { timeout: 180_000 }, () => {
+    const dest = generateProject({
+      projectName: "build-shared-all",
+      packageName: "build-shared-all",
+      features: ["router", "pinia", "ui", "services", "forms", "eslint"],
+      authPreset: "none",
+      authPages: [],
+      sharedComponents: ["app-form-input", "app-form-datepicker", "app-phone-input", "app-field"],
+    });
+    install(dest);
+    expect(() => build(dest)).not.toThrow();
+  });
+
+  it("sanctum auth with field variant + all pages builds", { timeout: 180_000 }, () => {
+    const dest = generateProject({
+      projectName: "build-sanctum-field",
+      packageName: "build-sanctum-field",
+      features: ["router", "pinia", "services", "ui", "forms"],
+      authPreset: "sanctum",
+      authPages: ["register", "forgot-password", "reset-password", "email-verification"],
+      sharedComponents: ["app-form-input", "app-field"],
+    });
+    install(dest);
+    expect(() => build(dest)).not.toThrow();
+  });
+
+  it("ui + app-form-input + app-phone-input (no forms, no app-field) builds", { timeout: 180_000 }, () => {
+    const dest = generateProject({
+      projectName: "build-shared-no-forms",
+      packageName: "build-shared-no-forms",
+      features: ["router", "pinia", "ui", "services"],
+      authPreset: "none",
+      authPages: [],
+      sharedComponents: ["app-form-input", "app-phone-input"],
     });
     install(dest);
     expect(() => build(dest)).not.toThrow();
