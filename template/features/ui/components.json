@@ -6,14 +6,16 @@
     "config": "",
     "css": "src/assets/index.css",
     "baseColor": "neutral",
-    "cssVariables": true
+    "cssVariables": true,
+    "prefix": ""
   },
-  "framework": "vite",
+  "iconLibrary": "lucide",
   "aliases": {
     "components": "@/components",
     "utils": "@/lib/utils",
     "ui": "@/components/ui",
-    "composables": "@/composables",
-    "lib": "@/lib"
-  }
+    "lib": "@/lib",
+    "composables": "@/composables"
+  },
+  "registries": {}
 }

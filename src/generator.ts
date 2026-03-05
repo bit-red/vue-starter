@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { execSync } from "node:child_process";
 import * as p from "@clack/prompts";
-import type { ProjectOptions, AuthPage } from "./types.js";
+import type { ProjectOptions, AuthPage, SharedComponent } from "./types.js";
 import { renderTemplate } from "./utils.js";
 import { generateMainTs } from "./generators/main-ts.js";
 import { generateAppVue } from "./generators/app-vue.js";
@@ -13,6 +13,7 @@ import {
   generateAuthMutationsIndex,
   generateAuthMainIndex,
 } from "./generators/auth-indexes.js";
+import { generateClaudeMd } from "./generators/claude-md.js";
 
 function getTemplateDir(): string {
   return path.resolve(
@@ -89,6 +90,10 @@ function applyAuthCommon(
     path.resolve(srcDir, "services/auth/mutations/use-logout.ts"),
   );
 
+  // Determine page variant: field (AppField), ui (Shadcn), or plain
+  const hasAppField = options.sharedComponents.includes("app-field");
+  const pageVariant = hasAppField ? "field" : hasUi ? "ui" : "plain";
+
   // b. Copy selective mutations and pages based on authPages
   for (const page of authPages) {
     const files = AUTH_PAGE_FILES[page];
@@ -99,17 +104,16 @@ function applyAuthCommon(
       path.resolve(srcDir, "services/auth/mutations", files.mutation),
     );
 
-    // Page (ui or plain)
+    // Page (field, ui, or plain)
     if (hasUi) {
       copyFile(
-        path.resolve(commonDir, "src/modules/auth/pages/ui", files.page),
+        path.resolve(commonDir, "src/modules/auth/pages", pageVariant, files.page),
         path.resolve(srcDir, "modules/auth/pages", files.page),
       );
     }
   }
 
-  // c. Copy LoginPage (always) — from plain or ui
-  const pageVariant = hasUi ? "ui" : "plain";
+  // c. Copy LoginPage (always) — from field, ui, or plain
   copyFile(
     path.resolve(commonDir, "src/modules/auth/pages", pageVariant, "LoginPage.vue"),
     path.resolve(srcDir, "modules/auth/pages/LoginPage.vue"),
@@ -126,9 +130,10 @@ function applyAuthCommon(
     }
   }
 
-  // e. Copy DashboardPage — from plain or ui
+  // e. Copy DashboardPage — from plain or ui (dashboard has no form fields)
+  const dashboardVariant = hasUi ? "ui" : "plain";
   copyFile(
-    path.resolve(commonDir, "src/pages", pageVariant, "DashboardPage.vue"),
+    path.resolve(commonDir, "src/pages", dashboardVariant, "DashboardPage.vue"),
     path.resolve(srcDir, "pages/DashboardPage.vue"),
   );
 
@@ -151,6 +156,86 @@ function applyAuthCommon(
   fs.writeFileSync(
     path.resolve(srcDir, "services/auth/index.ts"),
     generateAuthMainIndex(authPages, authPreset),
+  );
+}
+
+function applySharedComponents(
+  templateDir: string,
+  dest: string,
+  options: ProjectOptions,
+): void {
+  const { sharedComponents } = options;
+
+  // Apply simple overlays (everything except app-field)
+  const simpleComponents: SharedComponent[] = sharedComponents.filter(
+    (c) => c !== "app-field",
+  );
+
+  for (const component of simpleComponents) {
+    const componentDir = path.resolve(templateDir, "shared", component);
+    if (fs.existsSync(componentDir)) {
+      renderTemplate(componentDir, dest);
+    }
+  }
+
+  // Apply app-field with conditional logic
+  if (sharedComponents.includes("app-field")) {
+    applyAppField(templateDir, dest, options);
+  }
+
+  // Append datepicker.css import to index.css if datepicker was selected
+  if (sharedComponents.includes("app-form-datepicker")) {
+    const indexCssPath = path.resolve(dest, "src", "assets", "index.css");
+    if (fs.existsSync(indexCssPath)) {
+      const content = fs.readFileSync(indexCssPath, "utf-8");
+      if (!content.includes("datepicker.css")) {
+        fs.writeFileSync(
+          indexCssPath,
+          content.trimEnd() + '\n\n@import "./datepicker.css";\n',
+        );
+      }
+    }
+  }
+}
+
+function applyAppField(
+  templateDir: string,
+  dest: string,
+  options: ProjectOptions,
+): void {
+  const fieldDir = path.resolve(templateDir, "shared", "app-field");
+  if (!fs.existsSync(fieldDir)) return;
+
+  // Apply the overlay (copies package.json merge, all files)
+  renderTemplate(fieldDir, dest);
+
+  const hasPhone = options.sharedComponents.includes("app-phone-input");
+  const fieldComponentDir = path.resolve(
+    dest,
+    "src",
+    "components",
+    "shared",
+    "app-field",
+  );
+
+  // Remove AppFieldPhone.vue if phone input is not selected
+  if (!hasPhone) {
+    const phoneFieldPath = path.resolve(fieldComponentDir, "AppFieldPhone.vue");
+    if (fs.existsSync(phoneFieldPath)) {
+      fs.unlinkSync(phoneFieldPath);
+    }
+  }
+
+  // Generate index.ts dynamically based on phone presence
+  const indexLines = ['export { default as AppField } from "./AppField.vue";'];
+  if (hasPhone) {
+    indexLines.push(
+      'export { default as AppFieldPhone } from "./AppFieldPhone.vue";',
+    );
+  }
+  fs.writeFileSync(
+    path.resolve(fieldComponentDir, "index.ts"),
+    indexLines.join("\n") + "\n",
   );
 }
 
@@ -188,6 +273,12 @@ export async function generateProject(options: ProjectOptions): Promise<void> {
     }
   }
 
+  // 2b. Shared components
+  if (options.sharedComponents.length > 0) {
+    scaffold.message("Applying shared components");
+    applySharedComponents(templateDir, dest, options);
+  }
+
   if (authPreset !== "none") {
     scaffold.message(`Applying auth preset: ${authPreset}`);
 
@@ -214,6 +305,12 @@ export async function generateProject(options: ProjectOptions): Promise<void> {
   fs.writeFileSync(
     path.resolve(dest, "vite.config.ts"),
     generateViteConfig(options),
+  );
+
+  // Generate CLAUDE.md dynamically
+  fs.writeFileSync(
+    path.resolve(dest, "CLAUDE.md"),
+    generateClaudeMd(options),
   );
 
   const pkgPath = path.resolve(dest, "package.json");
